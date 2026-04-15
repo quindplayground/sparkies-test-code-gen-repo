@@ -1,0 +1,22 @@
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
+.venv/
+venv/
+.env
+*.egg-info/
+.eggs/
+dist/
+build/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# IA Framework (auto-generated artifacts)
+.ia-framework/
+.claude/
+CLAUDE.md
+.cursor/rules/
