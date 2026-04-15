@@ -1,3 +1,3 @@
-from fastapi import APIRouter
+from smoke_health_api.infrastructure.entrypoints.http.health_router import router
 
-router = APIRouter(prefix="/health", tags=["health"])
+__all__ = ["router"]
