@@ -11,6 +11,6 @@ from smoke_health_api.infrastructure.entrypoints.http.health_router import (
 def create_app(container: AppContainer | None = None) -> FastAPI:
     resolved = container or AppContainer.default()
     app = FastAPI(title="smoke-health-api")
-    health_service = resolved.build_health_application_service()
-    app.include_router(create_health_router(health_service))
+    get_health_use_case = resolved.build_get_health_use_case()
+    app.include_router(create_health_router(get_health_use_case))
     return app

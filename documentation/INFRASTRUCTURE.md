@@ -31,7 +31,7 @@ The only data source for health is `ServiceHealth.live()` in the domain, exposed
 |----------|--------|--------------------------------------------------------|
 | `/health` | `GET`  | `200` with JSON body `{"status": "ok"}` (string values). |
 
-Implementation: `infrastructure.entrypoints.http.health_router.create_health_router` registers the route on a FastAPI `APIRouter` with tag `health`. The handler delegates to `HealthApplicationService.get_public_health_body`, which maps the domain aggregate via `HealthPublicPayloadService.to_public_body`.
+Implementation: `infrastructure.entrypoints.http.health_router.create_health_router` registers the route on a FastAPI `APIRouter` with tag `health`. The handler delegates to `GetHealthUseCase.execute`, which loads the aggregate via the port and maps it through `HealthPublicPayloadService.to_public_body`, then returns `HealthCheckResponse.to_json_body()`.
 
 ## External integrations
 
@@ -41,7 +41,7 @@ None (no outbound HTTP, no cloud SDKs, no queues).
 
 - **Pattern**: small **composition root** + **factory** for the FastAPI app.
 - **`AppContainer`** (`infrastructure.config.container`): immutable dataclass holding a `ServiceHealthProviderPort` implementation. `AppContainer.default()` wires `StaticServiceHealthProvider`.
-- **`create_app(container=...)`** (`bootstrap.py`): builds `FastAPI`, resolves `HealthApplicationService` from the container, and mounts the health router.
+- **`create_app(container=...)`** (`bootstrap.py`): builds `FastAPI`, resolves `GetHealthUseCase` from the container, and mounts the health router.
 
 Alternative implementations of `ServiceHealthProviderPort` can be injected by passing a custom `AppContainer` into `create_app` (used in tests).
 
@@ -52,7 +52,7 @@ Alternative implementations of `ServiceHealthProviderPort` can be injected by pa
 | `StaticServiceHealthProvider`     | **Adapter** implementing `ServiceHealthProviderPort` (outbound). |
 | `create_health_router`            | **Factory** producing a configured inbound HTTP adapter. |
 | `AppContainer`                    | **Composition root** fragment: centralizes default adapter choice. |
-| `HealthApplicationService`        | Application **service** (not infrastructure; orchestrates port + domain mapper). |
+| `GetHealthUseCase`                | Application **use case** (not infrastructure; orchestrates port + domain mapper). |
 
 ## Relation to legacy `smoke_health_api/adapters/`
 
