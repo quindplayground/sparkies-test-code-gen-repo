@@ -1,0 +1,2 @@
+class InvalidHealthStatusError(ValueError):
+    pass
