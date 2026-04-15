@@ -21,6 +21,3 @@ class HealthStatus:
     @classmethod
     def ok(cls) -> "HealthStatus":
         return cls("ok")
-
-    def to_payload(self) -> dict[str, str]:
-        return {"status": self.value}

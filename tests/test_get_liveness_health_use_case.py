@@ -1,10 +1,8 @@
-from unittest.mock import MagicMock, create_autospec
+from unittest.mock import create_autospec
 
 import pytest
 
-from smoke_health_api.application.health_service import HealthService
 from smoke_health_api.application.use_cases.get_liveness_health import (
-    GetLivenessHealthCommand,
     GetLivenessHealthUseCase,
 )
 from smoke_health_api.domain import HealthReport, HealthStatus, InvalidHealthStatusError
@@ -13,24 +11,24 @@ from smoke_health_api.domain.services.health_reporting_domain_service import (
 )
 
 
-def test_use_case_execute_happy_path() -> None:
+def test_use_case_get_liveness_report_happy_path() -> None:
     domain = create_autospec(HealthReportingDomainService, instance=True)
     domain.build_liveness_report.return_value = HealthReport(status=HealthStatus.ok())
     use_case = GetLivenessHealthUseCase(domain_service=domain)
 
-    result = use_case.execute(GetLivenessHealthCommand())
+    result = use_case.get_liveness_report()
 
-    assert result == {"status": "ok"}
+    assert result == HealthReport(status=HealthStatus.ok())
     domain.build_liveness_report.assert_called_once_with()
 
 
-def test_use_case_each_execute_calls_domain_again() -> None:
+def test_use_case_each_get_liveness_report_calls_domain_again() -> None:
     domain = create_autospec(HealthReportingDomainService, instance=True)
     domain.build_liveness_report.return_value = HealthReport(status=HealthStatus.ok())
     use_case = GetLivenessHealthUseCase(domain_service=domain)
 
-    use_case.execute(GetLivenessHealthCommand())
-    use_case.execute(GetLivenessHealthCommand())
+    use_case.get_liveness_report()
+    use_case.get_liveness_report()
 
     assert domain.build_liveness_report.call_count == 2
 
@@ -41,7 +39,7 @@ def test_use_case_propagates_invalid_health_status_error() -> None:
     use_case = GetLivenessHealthUseCase(domain_service=domain)
 
     with pytest.raises(InvalidHealthStatusError):
-        use_case.execute(GetLivenessHealthCommand())
+        use_case.get_liveness_report()
 
 
 def test_use_case_propagates_unexpected_errors() -> None:
@@ -50,64 +48,21 @@ def test_use_case_propagates_unexpected_errors() -> None:
     use_case = GetLivenessHealthUseCase(domain_service=domain)
 
     with pytest.raises(RuntimeError, match="boom"):
-        use_case.execute(GetLivenessHealthCommand())
+        use_case.get_liveness_report()
 
 
-def test_use_case_returns_serialized_report_from_domain() -> None:
-    report = MagicMock()
-    report.to_http_body.return_value = {"status": "ok"}
+def test_use_case_returns_domain_report_from_domain_service() -> None:
+    report = HealthReport(status=HealthStatus.ok())
     domain = create_autospec(HealthReportingDomainService, instance=True)
     domain.build_liveness_report.return_value = report
     use_case = GetLivenessHealthUseCase(domain_service=domain)
 
-    assert use_case.execute(GetLivenessHealthCommand()) == {"status": "ok"}
-    report.to_http_body.assert_called_once_with()
+    assert use_case.get_liveness_report() is report
 
 
-def test_health_service_delegates_to_use_case() -> None:
-    use_case = create_autospec(GetLivenessHealthUseCase, instance=True)
-    use_case.execute.return_value = {"status": "ok"}
-    service = HealthService(liveness_use_case=use_case)
+def test_use_case_get_liveness_report_returns_ok_value() -> None:
+    domain = create_autospec(HealthReportingDomainService, instance=True)
+    domain.build_liveness_report.return_value = HealthReport(status=HealthStatus.ok())
+    use_case = GetLivenessHealthUseCase(domain_service=domain)
 
-    assert service.get_liveness_payload() == {"status": "ok"}
-    use_case.execute.assert_called_once()
-    assert isinstance(use_case.execute.call_args[0][0], GetLivenessHealthCommand)
-
-
-def test_health_service_propagates_use_case_invalid_health_status_error() -> None:
-    use_case = create_autospec(GetLivenessHealthUseCase, instance=True)
-    use_case.execute.side_effect = InvalidHealthStatusError("bad")
-    service = HealthService(liveness_use_case=use_case)
-
-    with pytest.raises(InvalidHealthStatusError, match="bad"):
-        service.get_liveness_payload()
-
-
-def test_health_service_propagates_use_case_runtime_error() -> None:
-    use_case = create_autospec(GetLivenessHealthUseCase, instance=True)
-    use_case.execute.side_effect = RuntimeError("use case failed")
-    service = HealthService(liveness_use_case=use_case)
-
-    with pytest.raises(RuntimeError, match="use case failed"):
-        service.get_liveness_payload()
-
-
-def test_health_service_returns_payload_from_each_call_independently() -> None:
-    use_case = create_autospec(GetLivenessHealthUseCase, instance=True)
-    use_case.execute.side_effect = [{"status": "ok"}, {"status": "ok"}]
-    service = HealthService(liveness_use_case=use_case)
-
-    assert service.get_liveness_payload() == {"status": "ok"}
-    assert service.get_liveness_payload() == {"status": "ok"}
-    assert use_case.execute.call_count == 2
-
-
-def test_get_liveness_health_command_instances_are_equal() -> None:
-    assert GetLivenessHealthCommand() == GetLivenessHealthCommand()
-
-
-def test_get_liveness_health_command_is_hashable_when_used_in_frozen_set() -> None:
-    a = GetLivenessHealthCommand()
-    b = GetLivenessHealthCommand()
-    assert hash(a) == hash(b)
-    assert len({a, b}) == 1
+    assert use_case.get_liveness_report().status.value == "ok"

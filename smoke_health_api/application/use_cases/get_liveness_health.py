@@ -1,19 +1,15 @@
-from dataclasses import dataclass
-
+from smoke_health_api.domain.models.health_report import HealthReport
+from smoke_health_api.domain.ports.liveness_health_inbound_port import (
+    LivenessHealthInboundPort,
+)
 from smoke_health_api.domain.services.health_reporting_domain_service import (
     HealthReportingDomainService,
 )
 
 
-@dataclass(frozen=True)
-class GetLivenessHealthCommand:
-    pass
-
-
-class GetLivenessHealthUseCase:
+class GetLivenessHealthUseCase(LivenessHealthInboundPort):
     def __init__(self, domain_service: HealthReportingDomainService) -> None:
         self._domain_service = domain_service
 
-    def execute(self, _command: GetLivenessHealthCommand) -> dict[str, str]:
-        report = self._domain_service.build_liveness_report()
-        return report.to_http_body()
+    def get_liveness_report(self) -> HealthReport:
+        return self._domain_service.build_liveness_report()

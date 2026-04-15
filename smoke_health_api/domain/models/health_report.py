@@ -12,6 +12,3 @@ class HealthReport:
     def __post_init__(self) -> None:
         if not isinstance(self.status, HealthStatus):
             raise TypeError("HealthReport.status must be a HealthStatus instance.")
-
-    def to_http_body(self) -> dict[str, str]:
-        return self.status.to_payload()

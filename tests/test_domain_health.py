@@ -23,10 +23,6 @@ class _InvalidStatusProbe:
         raise InvalidHealthStatusError("status rejected by probe")
 
 
-def test_health_status_ok_payload() -> None:
-    assert HealthStatus.ok().to_payload() == {"status": "ok"}
-
-
 def test_health_status_ok_factory_matches_literal_ok() -> None:
     assert HealthStatus.ok().value == "ok"
 
@@ -46,9 +42,9 @@ def test_health_status_rejects_uppercase_ok() -> None:
         HealthStatus("OK")
 
 
-def test_health_report_delegates_to_status_payload() -> None:
+def test_health_report_exposes_status_value() -> None:
     report = HealthReport(status=HealthStatus.ok())
-    assert report.to_http_body() == {"status": "ok"}
+    assert report.status.value == "ok"
 
 
 def test_health_report_rejects_non_health_status_status() -> None:
@@ -68,7 +64,7 @@ def test_invalid_health_status_error_is_value_error_subclass() -> None:
 
 def test_domain_service_builds_report_from_probe() -> None:
     service = HealthReportingDomainService(probe=_OkProbe())
-    assert service.build_liveness_report().to_http_body() == {"status": "ok"}
+    assert service.build_liveness_report().status.value == "ok"
 
 
 def test_domain_service_propagates_probe_runtime_error() -> None:

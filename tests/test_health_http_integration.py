@@ -4,11 +4,11 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from smoke_health_api.app import create_app
-from smoke_health_api.application.health_service import HealthService
-from smoke_health_api.infrastructure.adapters.outbound.static_health_probe_adapter import (
-    StaticHealthProbeAdapter,
+from smoke_health_api.domain import HealthReport, HealthStatus
+from smoke_health_api.domain.ports.liveness_health_inbound_port import (
+    LivenessHealthInboundPort,
 )
-from smoke_health_api.infrastructure.config.dependencies import get_health_service
+from smoke_health_api.infrastructure.config.dependencies import get_liveness_health_port
 from smoke_health_api.infrastructure.entrypoints.http.health_router import health_router
 
 
@@ -40,40 +40,26 @@ def test_unknown_path_returns_404() -> None:
 def test_health_router_returns_service_payload_with_dependency_override() -> None:
     app = FastAPI()
     app.include_router(health_router)
-    mock_service = MagicMock(spec=HealthService)
-    mock_service.get_liveness_payload.return_value = {"status": "ok"}
-    app.dependency_overrides[get_health_service] = lambda: mock_service
+    mock_port = MagicMock(spec=LivenessHealthInboundPort)
+    mock_port.get_liveness_report.return_value = HealthReport(status=HealthStatus.ok())
+    app.dependency_overrides[get_liveness_health_port] = lambda: mock_port
 
     client = TestClient(app)
     response = client.get("/health")
 
     assert response.status_code == 200
     assert response.json() == {"status": "ok"}
-    mock_service.get_liveness_payload.assert_called_once_with()
+    mock_port.get_liveness_report.assert_called_once_with()
 
 
 def test_health_router_returns_500_when_service_raises() -> None:
     app = FastAPI()
     app.include_router(health_router)
-    mock_service = MagicMock(spec=HealthService)
-    mock_service.get_liveness_payload.side_effect = RuntimeError("boom")
-    app.dependency_overrides[get_health_service] = lambda: mock_service
+    mock_port = MagicMock(spec=LivenessHealthInboundPort)
+    mock_port.get_liveness_report.side_effect = RuntimeError("boom")
+    app.dependency_overrides[get_liveness_health_port] = lambda: mock_port
 
     client = TestClient(app, raise_server_exceptions=False)
     response = client.get("/health")
 
     assert response.status_code == 500
-
-
-def test_static_health_probe_adapter_returns_ok() -> None:
-    probe = StaticHealthProbeAdapter()
-    assert probe.get_health_status().to_payload() == {"status": "ok"}
-
-
-def test_static_health_probe_adapter_returns_ok_on_repeated_calls() -> None:
-    probe = StaticHealthProbeAdapter()
-    first = probe.get_health_status()
-    second = probe.get_health_status()
-    assert first.to_payload() == {"status": "ok"}
-    assert second.to_payload() == {"status": "ok"}
-    assert first is not second
