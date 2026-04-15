@@ -1,12 +1,12 @@
-from smoke_health_api.domain.ports.health_probe_port import HealthProbePort
-from smoke_health_api.domain.services.health_reporting_domain_service import (
-    HealthReportingDomainService,
+from smoke_health_api.application.use_cases.get_liveness_health import (
+    GetLivenessHealthCommand,
+    GetLivenessHealthUseCase,
 )
 
 
 class HealthService:
-    def __init__(self, probe: HealthProbePort) -> None:
-        self._reporting = HealthReportingDomainService(probe)
+    def __init__(self, liveness_use_case: GetLivenessHealthUseCase) -> None:
+        self._liveness_use_case = liveness_use_case
 
     def get_liveness_payload(self) -> dict[str, str]:
-        return self._reporting.build_liveness_report().to_http_body()
+        return self._liveness_use_case.execute(GetLivenessHealthCommand())
