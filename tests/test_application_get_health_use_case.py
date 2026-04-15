@@ -61,3 +61,21 @@ def test_execute_propagates_domain_errors_from_port() -> None:
 
     with pytest.raises(DomainError, match="invariant failed upstream"):
         use_case.execute()
+
+
+def test_health_check_response_to_json_body_contract() -> None:
+    response = HealthCheckResponse(status="ok")
+    assert response.to_json_body() == {"status": "ok"}
+
+
+def test_health_check_response_to_json_body_preserves_custom_status_string() -> None:
+    response = HealthCheckResponse(status="custom")
+    assert response.to_json_body() == {"status": "custom"}
+
+
+def test_health_check_response_to_json_body_serializes_empty_status() -> None:
+    assert HealthCheckResponse(status="").to_json_body() == {"status": ""}
+
+
+def test_get_health_query_is_stable_value_object() -> None:
+    assert GetHealthQuery() == GetHealthQuery()
