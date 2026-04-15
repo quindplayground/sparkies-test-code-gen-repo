@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 
-from smoke_health_api.adapters.http.router import health_router
+from smoke_health_api.infrastructure.entrypoints.http.health_router import health_router
 
 
 def create_app() -> FastAPI:
