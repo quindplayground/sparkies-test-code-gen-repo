@@ -72,3 +72,42 @@ def test_health_service_delegates_to_use_case() -> None:
     assert service.get_liveness_payload() == {"status": "ok"}
     use_case.execute.assert_called_once()
     assert isinstance(use_case.execute.call_args[0][0], GetLivenessHealthCommand)
+
+
+def test_health_service_propagates_use_case_invalid_health_status_error() -> None:
+    use_case = create_autospec(GetLivenessHealthUseCase, instance=True)
+    use_case.execute.side_effect = InvalidHealthStatusError("bad")
+    service = HealthService(liveness_use_case=use_case)
+
+    with pytest.raises(InvalidHealthStatusError, match="bad"):
+        service.get_liveness_payload()
+
+
+def test_health_service_propagates_use_case_runtime_error() -> None:
+    use_case = create_autospec(GetLivenessHealthUseCase, instance=True)
+    use_case.execute.side_effect = RuntimeError("use case failed")
+    service = HealthService(liveness_use_case=use_case)
+
+    with pytest.raises(RuntimeError, match="use case failed"):
+        service.get_liveness_payload()
+
+
+def test_health_service_returns_payload_from_each_call_independently() -> None:
+    use_case = create_autospec(GetLivenessHealthUseCase, instance=True)
+    use_case.execute.side_effect = [{"status": "ok"}, {"status": "ok"}]
+    service = HealthService(liveness_use_case=use_case)
+
+    assert service.get_liveness_payload() == {"status": "ok"}
+    assert service.get_liveness_payload() == {"status": "ok"}
+    assert use_case.execute.call_count == 2
+
+
+def test_get_liveness_health_command_instances_are_equal() -> None:
+    assert GetLivenessHealthCommand() == GetLivenessHealthCommand()
+
+
+def test_get_liveness_health_command_is_hashable_when_used_in_frozen_set() -> None:
+    a = GetLivenessHealthCommand()
+    b = GetLivenessHealthCommand()
+    assert hash(a) == hash(b)
+    assert len({a, b}) == 1
